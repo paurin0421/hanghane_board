@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/open-iconic/1.1.1/font/css/open-iconic-bootstrap.min.css"
+          integrity="sha256-BJ/G+e+y7bQdrYkS2RBTyNfBHpA9IuGaPmf9htub5MQ=" crossorigin="anonymous"/>
+
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
+            integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+            crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"
+            integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+            crossorigin="anonymous"></script>
+
+    <!-- 구글 폰트 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+
+    <title>게시글 상세</title>
+    <style>
+        * {
+            font-family: 'Jua', sans-serif;
+        }
+
+        .wrap-detail {
+            width: 1000px;
+            margin: 10px auto;
+        }
+
+    </style>
+
+    <script>
+        $(document).ready(function () {
+            showDetail()
+        })
+
+        let getParam = window.location.search;
+        let getId = getParam.split('=')[1]
+
+        function showDetail() {
+            $.ajax({
+                type: "GET",
+                url: `/api/posts/${getId}`,
+                success: function (response) {
+                    console.log(response)
+                    let title = response.title
+                    let username = response.username
+                    let contents = response.contents
+                    let comments = response.comments
+
+                    let tempHtml = `<div class="card col-8">
+                                <div class="container mt-5">
+                                    <div class="row align-items-center my-1">
+                                        <div class="col-2 text-center"><h5>제목</h5></div>
+                                        <div class="col-10 text-left"><h5>${title}</h5></div>
+                                    </div>
+                                    <div class="row align-items-center my-4">
+                                        <div class="col-2 text-center"><h5>작성자</h5></div>
+                                        <div class="col-10 text-left"><h5>${username}</h5></div>
+                                    </div>
+                                    <div class="row align-items-center my-1">
+                                        <div class="col-2 text-center"><h5>내용</h5></div>
+                                        <div class="col-10 text-left"><h5>${contents}</h5></div>
+                                    </div>
+                                </div>
+                            </div>`
+                    $('#post').append(tempHtml);
+
+                    if (comments.length !== 0) {
+                        for (i = comments.length - 1; i >= 0; i--) {
+                            let tempHtml = `<div id="see-area${comments[i].id}">
+                                                <div class="row align-items-center">
+                                                    <div class="col-md-2 text-center pt-3" style="line-height: 1"><p>${comments[i].username}</p></div>
+                                                    <div class="col-md-10 text-left pt-3" style="line-height: 1"><p>${comments[i].contents}</p></div>
+                                                    <button class="btn" onclick="showEdit(${comments[i].id})">수정</button><button class="btn" onclick="deleteComment(${comments[i].id})">삭제</button>
+                                                </div>
+                                            </div>
+                                            <div id="edit-area${comments[i].id}" style="display: none">
+                                                <div class="row align-items-center">
+                                                    <input class="col-md-2 text-center" type="text" id="username${comments[i].id}" name="username${comments[i].id}" maxlength="10">
+                                                    <input class="col-md-8 text-left" type="text" id="contents${comments[i].id}" name="contents${comments[i].id}" maxlength="200">
+                                                    <button class="btn" onclick="updateComment(${comments[i].id})">수정완료</button><button class="btn" onclick="closeEdit(${comments[i].id})">취소</button>
+                                                </div>
+                                            </div>`
+                            $('#comment').append(tempHtml);
+                            $(`input[name=username${comments[i].id}]`).attr('value', comments[i].username)
+                            $(`input[name=contents${comments[i].id}]`).attr('value', comments[i].contents)
+                        }
+                    }
+                }
+            })
+        }
+
+        function updatePost() {
+            window.location.href = "create?id=" + getId
+        }
+
+        function deletePost() {
+            $.ajax({
+                type: "DELETE",
+                url: `/api/posts/${getId}`,
+                success: function (response) {
+                    alert("게시글이 삭제되었습니다.")
+                    window.location.href = "/"
+                }
+            })
+        }
+
+        function submitComment() {
+            let username = $('#form-username').val()
+            let contents = $('#form-contents').val()
+
+            if (contents == '' || username == '') {
+                alert('댓글 내용을 입력해주세요');
+                return;
+            }
+
+            $.ajax({
+                type: "POST",
+                url: `/api/${getId}/comments`,
+                contentType: "application/json",
+                data: JSON.stringify({username, contents}),
+                success: function (response) {
+                    alert("저장되었습니다.")
+                    window.location.reload()
+                }
+            })
+        }
+
+        function deleteComment(id) {
+            $.ajax({
+                type: "DELETE",
+                url: `/api/comments/${id}`,
+                success: function (response) {
+                    alert("댓글이 삭제되었습니다.")
+                    window.location.reload()
+                }
+            })
+        }
+
+        function showEdit(id) {
+            $(`#see-area${id}`).hide()
+            $(`#edit-area${id}`).show()
+        }
+
+        function closeEdit(id) {
+            $(`#see-area${id}`).show()
+            $(`#edit-area${id}`).hide()
+        }
+
+        function updateComment(id) {
+            let username = $(`#username${id}`).val()
+            let contents = $(`#contents${id}`).val()
+
+            if (contents == '' || username == '') {
+                alert('댓글 내용을 입력해주세요');
+                return;
+            }
+
+            $.ajax({
+                type: "PUT",
+                url: `/api/comments/${id}`,
+                contentType: "application/json",
+                data: JSON.stringify({username, contents}),
+                success: function (response) {
+                    alert("댓글이 수정되었습니다.")
+                    window.location.reload()
+                }
+            })
+
+        }
+    </script>
+</head>
+<body>
+<div class="wrap-detail">
+    <div id="post" style="width: 1000px">
+        <div class="mt-3 justify-content-end">
+            <button class="btn" onclick="updatePost()">수정하기</button>
+            <button class="btn" onclick="deletePost()">삭제하기</button>
+        </div>
+    </div>
+    <div>
+        <div class="form-group">
+            <label for="form-username">작성자</label>
+            <input type="text" class="form-control" id="form-username" name="form-username" style="width: 150px"
+                   maxlength="10">
+            <label for="form-contents">내용</label>
+            <textarea class="form-control" rows="1" id="form-contents" style="width: 500px" maxlength="200"></textarea>
+        </div>
+        <button onclick="submitComment()" class="btn-primary btn-default">등록</button>
+
+    </div>
+    <div id="comment" style="width: 1000px">
+    </div>
+</div>
+
+</body>
+</html>
